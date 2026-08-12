@@ -32,19 +32,27 @@ body{background:var(--bg);color:var(--chalk);font-family:var(--sans);font-size:1
 #app{max-width:560px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 /* ---------- 記分板 ---------- */
 #board{position:sticky;top:0;z-index:20;background:linear-gradient(#173125,#122519);
-  border-bottom:2px solid var(--edge);padding:10px 14px 8px;box-shadow:0 6px 18px #0009}
+  border-bottom:2px solid var(--edge);padding:10px 14px 8px;
+  box-shadow:0 6px 18px #0009,inset 0 -1px 0 #ffc95c1c}
 #bd-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-#bd-name{font-weight:900;font-size:17px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bd-name{flex:1 1 auto;min-width:0;font-weight:900;font-size:17px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #bd-name small{color:var(--dim);font-weight:500;font-size:12px;margin-left:6px}
-#bd-team{color:var(--amber);font-size:12.5px;font-weight:700;letter-spacing:.06em;white-space:nowrap}
+#bd-team{color:var(--amber);font-size:12.5px;font-weight:700;letter-spacing:.06em;white-space:nowrap;flex:none}
+#bd-team .pill{display:inline-flex;align-items:center;gap:6px;background:#0d2115;border:1px solid var(--edge);
+  border-radius:999px;padding:2px 10px 2px 8px;font-weight:900}
+#bd-team .pill i{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 5px currentColor}
 #bd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.bd-cell{background:#0d2115;border:1px solid var(--edge);border-radius:6px;padding:4px 6px 3px;text-align:center}
-.bd-cell b{display:block;font-family:var(--mono);font-size:17px;font-weight:700;color:var(--amber);
-  text-shadow:0 0 8px #ffc95c55;line-height:1.2}
-.bd-cell span{font-size:10px;color:var(--dim);letter-spacing:.15em}
+.bd-cell{background:#081711;border:1px solid var(--edge);border-radius:6px;padding:4px 6px 3px;text-align:center;
+  box-shadow:inset 0 0 10px #000c;position:relative;overflow:hidden}
+.bd-cell::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 2px,#00000030 2px 3px)}
+.bd-cell b{display:block;font-family:var(--mono);font-size:17px;font-weight:700;color:#ffd166;
+  letter-spacing:.05em;font-variant-numeric:tabular-nums;
+  text-shadow:0 0 6px #ffc95c99,0 0 16px #ffc95c40;line-height:1.2}
+.bd-cell span{font-size:11px;color:var(--dim);letter-spacing:.15em}
 #lamps{display:flex;gap:14px;justify-content:center;margin-top:7px}
-.lamp{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--dim);letter-spacing:.12em}
-.lamp i{width:9px;height:9px;border-radius:50%;background:#243c2e;border:1px solid #35543f;display:inline-block}
+.lamp{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--dim);letter-spacing:.12em}
+.lamp i{width:8px;height:8px;border-radius:1.5px;transform:rotate(45deg);background:#243c2e;border:1px solid #35543f;display:inline-block}
 .lamp.on{color:var(--chalk)} .lamp.on i{background:var(--amber);box-shadow:0 0 8px var(--amber);border-color:var(--amber)}
 /* ---------- 主紀錄 ---------- */
 #log{flex:1;padding:14px 14px 20px;display:flex;flex-direction:column;gap:10px}
@@ -56,9 +64,16 @@ body{background:var(--bg);color:var(--chalk);font-family:var(--sans);font-size:1
 .card h4::before{content:'';width:8px;height:8px;background:var(--clay);border-radius:2px;transform:rotate(45deg);flex:none}
 .card.gold h4::before{background:var(--amber)} .card.bad h4::before{background:var(--bad)}
 .card.good h4::before{background:var(--good)} .card.info h4::before{background:var(--blue)}
+/* Major milestones (draft, big injury, awards, retirement...) get a heavier card */
+.card.major{border-left:3px solid var(--clay);background:#16301f;padding-left:13px}
+.card.major h4{font-size:13.5px;color:var(--chalk);letter-spacing:.14em}
+.card.major.gold{border-left-color:var(--amber)} .card.major.bad{border-left-color:var(--bad)}
+.card.major.good{border-left-color:var(--good)} .card.major.info{border-left-color:var(--blue)}
 .card p{font-size:14px} .card p+p{margin-top:4px}
 .tag{display:inline-block;font-family:var(--mono);font-size:12px;padding:0 6px;border-radius:4px;
   background:#0d2115;border:1px solid var(--edge);color:var(--amber);margin:0 2px}
+.tag.neg{background:#2a0f0f;border-color:#c0392b;color:#ff8b7a}
+.tag.gone{text-decoration:line-through;opacity:.4;color:#8a8a8a;border-color:#4a4a4a}
 .up{color:var(--good);font-weight:700}.dn{color:var(--bad);font-weight:700}.hl{color:var(--amber);font-weight:700}
 .statline{font-family:var(--mono);font-size:12.5px;color:var(--chalk);background:#0d2115;border:1px dashed var(--edge);
   border-radius:6px;padding:6px 8px;margin-top:6px;line-height:1.7}
@@ -67,11 +82,13 @@ table.fin th,table.fin td{border-bottom:1px solid var(--edge);padding:4px 4px;te
 table.fin th{color:var(--dim);font-weight:500;letter-spacing:.05em}
 table.fin td:first-child,table.fin th:first-child{text-align:left}
 .divider{text-align:center;color:var(--dim);font-size:11px;letter-spacing:.4em;padding:6px 0 0}
-.yr-head{text-align:center;color:var(--dim);font-size:11px;letter-spacing:.3em;padding:8px 0 0;cursor:pointer;user-select:none}
+.yr-head{display:flex;align-items:center;gap:12px;color:var(--dim);font-size:11px;letter-spacing:.3em;padding:8px 0 0;cursor:pointer;user-select:none}
+.yr-head::before,.yr-head::after{content:'';flex:1;height:1px;background:var(--edge)}
+.yr-head span{flex:none}
 .yr-head:hover{color:var(--amber)}
 .yr-block.collapsed .yr-body{display:none}
-.yr-block.collapsed .yr-head::after{content:' ▸'}
-.yr-block:not(.collapsed) .yr-head.has-body::after{content:' ▾'}
+.yr-block.collapsed .yr-head span::after{content:' ▸'}
+.yr-block:not(.collapsed) .yr-head.has-body span::after{content:' ▾'}
 .divider::before,.divider::after{content:'———'}
 /* ---------- 操作區 ---------- */
 #act{position:sticky;bottom:0;z-index:20;background:linear-gradient(#122519ee,#0b1a12);border-top:2px solid var(--edge);
@@ -92,6 +109,10 @@ table.fin td:first-child,table.fin th:first-child{text-align:left}
 .die::after{content:'';position:absolute;inset:4px;border-radius:6px;border:1.5px dashed #c9764a55}
 .die.used{opacity:.22;transform:scale(.9)} .die.active{outline:3px solid var(--amber);outline-offset:2px}
 .die.six{color:#b3402f}
+@keyframes diceroll{0%{transform:translateY(-5px) rotate(-7deg)}50%{transform:translateY(2px) rotate(5deg)}100%{transform:none}}
+.die.rolling{animation:diceroll .14s linear infinite}
+@keyframes sixflash{0%,100%{box-shadow:inset 0 -3px 0 #0003}45%{box-shadow:inset 0 -3px 0 #0003,0 0 16px #e2695c,0 0 4px #e2695c}}
+.die.flash6{animation:sixflash .6s ease}
 .pool{font-family:var(--mono);font-size:15px;color:var(--amber);margin-bottom:10px}
 .abrow{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--edge);
   border-radius:8px;padding:7px 10px;margin-top:6px;cursor:pointer;user-select:none}
@@ -99,6 +120,15 @@ table.fin td:first-child,table.fin th:first-child{text-align:left}
 .abrow .nm{width:74px;font-size:13.5px;font-weight:700;flex:none}
 .abrow .bar{flex:1;height:8px;background:#0d2115;border-radius:4px;overflow:hidden}
 .abrow .bar i{display:block;height:100%;background:linear-gradient(90deg,#3c6a4c,var(--amber));border-radius:4px;transition:.2s}
+/* 20-80 scouting scale ticks at 40/50/60/70 (of 80 max) */
+.abrow .bar::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+  background-image:linear-gradient(#ece7d63d,#ece7d63d),linear-gradient(#ece7d63d,#ece7d63d),
+    linear-gradient(#ece7d63d,#ece7d63d),linear-gradient(#ece7d63d,#ece7d63d);
+  background-size:1px 100%;background-repeat:no-repeat;
+  background-position:50% 0,62.5% 0,75% 0,87.5% 0}
+.abrow.t60 .bar i{background:linear-gradient(90deg,#4c7a54,#ffd27a);box-shadow:0 0 8px #ffc95c55}
+.abrow.t70 .bar i{background:linear-gradient(90deg,#8a5e2e,#ff9c5c);box-shadow:0 0 10px #ff9c5c66}
+.abrow.t60 .val{color:#ffd27a} .abrow.t70 .val{color:#ff9c5c}
 .abrow .val{font-family:var(--mono);width:58px;text-align:right;font-size:14px;flex:none}
 .abrow .val b{color:var(--good)}
 .abrow.capped{opacity:.45}
@@ -107,8 +137,8 @@ table.fin td:first-child,table.fin th:first-child{text-align:left}
 #start{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;
   background-image:radial-gradient(ellipse 120% 50% at 50% -5%,#1d4630aa,transparent 60%)}
 #start .wrap{max-width:560px;margin:0 auto;padding:40px 22px 60px}
-#start h1{font-size:34px;font-weight:900;letter-spacing:.08em;line-height:1.25;margin-top:18px}
-#start h1 em{font-style:normal;color:var(--amber)}
+#start h1{font-family:var(--mono);font-size:34px;font-weight:700;letter-spacing:.14em;line-height:1.25;margin-top:18px}
+#start h1 em{font-style:normal;color:var(--amber);font-family:var(--sans);font-weight:900;letter-spacing:.08em}
 #start .sub{color:var(--dim);margin:10px 0 26px;font-size:13.5px;letter-spacing:.08em}
 .field{margin-top:18px}
 .field label{display:block;font-size:12px;letter-spacing:.25em;color:var(--dim);font-weight:700;margin-bottom:8px}
@@ -129,13 +159,32 @@ table.fin td:first-child,table.fin th:first-child{text-align:left}
 .stitch::after{right:8px;border-left:none;border-radius:0 50% 50% 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .bar{position:relative}
-.bar em{position:absolute;top:-2px;bottom:-2px;width:2px;background:#ffc95c66;border-radius:1px}
+.bar em{position:absolute;top:-2px;bottom:-2px;width:3px;background:#ffc95cb3;border-radius:1px;z-index:3}
 #btn-restart{background:none;border:1px solid #2b4a38;color:#8fae9c;border-radius:8px;
  font-size:14px;line-height:1;padding:4px 8px;margin-left:8px;cursor:pointer;flex:none}
 #btn-restart:active{background:#12271b}
-#act-toggle{display:block;margin:0 auto -4px;background:#0e2015;border:1px solid #2b4a38;
- border-bottom:none;color:#8fae9c;font-size:11px;padding:3px 14px;border-radius:10px 10px 0 0;cursor:pointer}
+#act-toggle{display:block;margin:0 auto -4px;background:#122619;border:1px solid #2b4a38;
+ border-bottom:none;color:#8fae9c;font-size:11px;padding:3px 14px;border-radius:10px 10px 0 0;cursor:pointer;
+ box-shadow:0 -4px 12px #000a}
 #act.collapsed{display:none!important}
+/* ---------- 寬螢幕:內野線稿背景 + 側框 ---------- */
+@media (min-width:760px){
+  body{background-image:
+    radial-gradient(ellipse 120% 60% at 50% -10%,#16352644 0%,transparent 60%),
+    radial-gradient(ellipse 85% 85% at 50% 115%,transparent 45%,#00000059 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 640'%3E%3Cg fill='none' stroke='%2326543b' stroke-width='2' stroke-opacity='.55'%3E%3Cpath d='M450 600 L60 210'/%3E%3Cpath d='M450 600 L840 210'/%3E%3Cpath d='M60 210 A552 552 0 0 1 840 210'/%3E%3Cpath d='M450 600 L290 440 L450 280 L610 440 Z'/%3E%3Ccircle cx='450' cy='440' r='46'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:top center,center,center calc(100% + 70px);
+    background-size:auto,cover,min(1100px,130vw) auto;
+    background-attachment:scroll,fixed,fixed}
+  #app{border-left:1px solid #1d3a2b;border-right:1px solid #1d3a2b;box-shadow:0 0 80px #000a}
+  #start{background-image:
+    radial-gradient(ellipse 120% 50% at 50% -5%,#1d4630aa,transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 640'%3E%3Cg fill='none' stroke='%2326543b' stroke-width='2' stroke-opacity='.55'%3E%3Cpath d='M450 600 L60 210'/%3E%3Cpath d='M450 600 L840 210'/%3E%3Cpath d='M60 210 A552 552 0 0 1 840 210'/%3E%3Cpath d='M450 600 L290 440 L450 280 L610 440 Z'/%3E%3Ccircle cx='450' cy='440' r='46'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:top center,center calc(100% + 70px);
+    background-size:auto,min(1100px,130vw) auto}
+}
 </style>
 </head>
 <body>
@@ -751,10 +800,22 @@ const $=id=>document.getElementById(id);
 var _curYearBody=null; /* 當前年度的內容容器 */
 var MAX_YEARS=8;         /* DOM 最多保留幾個年度區塊 */
 function logTarget(){ return _curYearBody || $('log'); }
-function card(cls,title,html){ const d=document.createElement('div'); d.className='card '+cls;
+/* Titles matching this are career milestones and get the heavier .major card style */
+const MAJOR_RE=/選秀|大傷|引退|名人堂|年度獎項|隱藏|生涯評價|球員誕生|旅日|旅美|生涯年/;
+function card(cls,title,html){ const d=document.createElement('div');
+  d.className='card '+cls+(title&&MAJOR_RE.test(title)?' major':'');
   d.innerHTML=(title?`<h4>${title}</h4>`:'')+html; logTarget().appendChild(d);
   scrollBottom(); }
-function divider(t){ /* 每個 divider 開啟新的年度摺疊區塊 */ const log=$('log'); const blocks=log.querySelectorAll('.yr-block'); /* 替剛結束的「上一年」加上下拉箭頭標記，但保留展開（不加上 collapsed） */ const prev = blocks[blocks.length - 1]; if(prev){ const h = prev.querySelector('.yr-head'); if(h && prev.querySelector('.yr-body').children.length) h.classList.add('has-body'); } /* 找到「前年」（倒數第二個區塊）並將其摺疊起來 */ const prevPrev = blocks[blocks.length - 2]; if(prevPrev){ prevPrev.classList.add('collapsed'); } /* 建新區塊 */ const block=document.createElement('div'); block.className='yr-block'; const head=document.createElement('div'); head.className='yr-head'; head.textContent=t; const body=document.createElement('div'); body.className='yr-body'; head.onclick=()=>block.classList.toggle('collapsed'); block.appendChild(head); block.appendChild(body); log.appendChild(block); _curYearBody=body; /* 超過上限:移除最舊的年度區塊(釋放 DOM) */ const newBlocks=log.querySelectorAll('.yr-block'); if(newBlocks.length>MAX_YEARS){ for(let i=0;i<newBlocks.length-MAX_YEARS;i++)newBlocks[i].remove(); } }
+function divider(t){ /* 每個 divider 開啟新的年度摺疊區塊 */ const log=$('log'); const blocks=log.querySelectorAll('.yr-block'); /* 替剛結束的「上一年」加上下拉箭頭標記，但保留展開（不加上 collapsed） */ const prev = blocks[blocks.length - 1]; if(prev){ const h = prev.querySelector('.yr-head'); if(h && prev.querySelector('.yr-body').children.length) h.classList.add('has-body'); } /* 找到「前年」（倒數第二個區塊）並將其摺疊起來 */ const prevPrev = blocks[blocks.length - 2]; if(prevPrev){ prevPrev.classList.add('collapsed'); } /* 建新區塊 */ const block=document.createElement('div'); block.className='yr-block'; const head=document.createElement('div'); head.className='yr-head'; const hs=document.createElement('span'); hs.textContent=t; head.appendChild(hs); const body=document.createElement('div'); body.className='yr-body'; head.onclick=()=>block.classList.toggle('collapsed'); block.appendChild(head); block.appendChild(body); log.appendChild(block); _curYearBody=body; /* 超過上限:移除最舊的年度區塊(釋放 DOM) */ const newBlocks=log.querySelectorAll('.yr-block'); if(newBlocks.length>MAX_YEARS){ for(let i=0;i<newBlocks.length-MAX_YEARS;i++)newBlocks[i].remove(); } }
+/* Lighten dark team colors so they stay readable on the dark board */
+function liftColor(hex){
+  const m=/^#?([0-9a-f]{6})$/i.exec(hex); if(!m)return '#ffc95c';
+  let r=parseInt(m[1].slice(0,2),16),g=parseInt(m[1].slice(2,4),16),b=parseInt(m[1].slice(4,6),16);
+  const lum=(0.2126*r+0.7152*g+0.0722*b)/255;
+  if(lum<0.5){ const t=Math.min(0.85,(0.5-lum)*1.6);
+    r=Math.round(r+(255-r)*t); g=Math.round(g+(255-g)*t); b=Math.round(b+(255-b)*t); }
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
 function board(phase){
   $('bd-name').innerHTML=`${S.name}<small>${S.dpos?DPN[S.dpos]:POSN[S.pos]}${S.role?'·'+roleN(S.role):''}·${playerType()}${S.traits.genius?' ★':''}</small>`;
   let t;
@@ -762,18 +823,11 @@ function board(phase){
   else if(S.stage==='U')t=S.team+'（大'+['一','二','三','四'][S.stageYr-1]+'）';
   else if(S.stage==='AMA')t=S.team+'（業餘）';
   else t=S.teamName();
-  { const tc = (S.orgTeam && TEAM_COLOR[S.orgTeam]) || 'var(--amber)';
-    /* 判斷顏色是否為白色，避免白底白字 */
-    const isWhite = (tc.toLowerCase() === '#ffffff' || tc.toLowerCase() === '#fff');
-    
-    /* 只有進入職業且有設定代表色時，才加上白底標籤樣式 */
+  { /* Pro teams: dark pill with the team color as dot/border/text (lifted for contrast on dark bg) */
     const isProColored = (S.stage === 'PRO' && TEAM_COLOR[S.orgTeam]);
-    const txtColor = isProColored ? (isWhite ? '#000000' : tc) : 'var(--amber)';
-    const bgStyle = isProColored ? 'background:#ffffff; padding:2px 8px; border-radius:6px; box-shadow:0 2px 4px rgba(0,0,0,0.4);' : '';
-    
-    const dot = isProColored ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${isWhite ? '#cccccc' : tc};margin-right:6px;vertical-align:middle;box-shadow:0 0 2px rgba(0,0,0,0.2);"></span>` : '';
-    
-    $('bd-team').innerHTML = dot + `<span style="color:${txtColor}; ${bgStyle} font-weight:900;">${t}</span>`; }
+    if(isProColored){ const c = liftColor(TEAM_COLOR[S.orgTeam]);
+      $('bd-team').innerHTML = `<span class="pill" style="border-color:${c}66;color:${c}"><i style="background:${c}"></i>${t}</span>`;
+    } else $('bd-team').textContent = t; }
   $('bd-age').textContent=S.age; $('bd-year').textContent=S.year;
   $('bd-ovr').textContent=ovr(); if(S.pos==='P'){const el=$('bd-tj'); if(el)el.textContent='';} $('bd-sal').textContent=Math.round(S.salary).toLocaleString();
   [0,1,2].forEach(i=>$('lp'+i).classList.toggle('on',i===phase));
@@ -809,7 +863,7 @@ function allocUI(mode,label,done){
     else top.innerHTML=`<div class="pool">剩餘可分配點數：${pool} 點（點一下能力 +1）</div>`;
     rows.innerHTML='';
     keys.forEach(k=>{ const v=S.ab[k],cap=v>=80;
-      const r=document.createElement('div'); r.className='abrow'+(cap?' capped':'');
+      const r=document.createElement('div'); r.className='abrow'+(cap?' capped':'')+(v>=70?' t70':v>=60?' t60':'');
       const pk=(S.pot&&S.pot[k])||62, cst=abCost(k), cr=(S.carry&&S.carry[k])||0;
       r.innerHTML=`<span class="nm">${ABL[k]}</span><span class="bar"><i style="width:${v/80*100}%"></i><em style="left:${pk/80*100}%"></em></span><span class="val" style="line-height:1.1">${v}<small style="opacity:.5">/${pk}</small>${cst>1?`<span style="display:block;opacity:.5;font-size:10.5px;letter-spacing:1px;margin-top:-2px">${cr}/${cst}</span>`:''}</span>`;
       if(!cap&&remaining()>0)r.onclick=()=>{ const amt=dice?dice[idx]:1;
@@ -831,6 +885,15 @@ function allocUI(mode,label,done){
     actToggleSync();
   }
   render();
+  /* Roll-in animation on first render only; purely visual, game values come from dice[] */
+  if(dice && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    a.querySelectorAll('#dice .die').forEach((el,i)=>{
+      el.classList.add('rolling');
+      const iv=setInterval(()=>{ el.textContent=1+Math.floor(Math.random()*6); },70);
+      setTimeout(()=>{ clearInterval(iv); el.classList.remove('rolling'); el.textContent=dice[i];
+        if(dice[i]===6)el.classList.add('flash6'); },260+i*90);
+    });
+  }
 }
 /* ================= 年度流程 ================= */
 function nextStep(){ if(S.done){ stepQ=[]; return; } /* 已引退:清空後續步驟,不再跑續約/結算 */ const f=stepQ.shift(); if(f)f(); }
@@ -2389,8 +2452,8 @@ function endGame(reason){
     return ''; /* 正向:預設琥珀 */
   };
   posT.pos.forEach(k=>{ if(S.traits[k])tr.push(`<span class="tag" style="${tagStyle(k)}">${TN[k]}</span>`); });
-  posT.neg.forEach(k=>{ if(S.traits[k])tr.push(`<span class="tag" style="background:#2a0f0f;border-color:#c0392b;color:#ff8b7a">${TN[k]}</span>`); });
-  (S.removed||[]).forEach(lbl=>tr.push(`<span class="tag" style="text-decoration:line-through;opacity:.4;color:#8a8a8a;border-color:#4a4a4a">${lbl}</span>`));
+  posT.neg.forEach(k=>{ if(S.traits[k])tr.push(`<span class="tag neg">${TN[k]}</span>`); });
+  (S.removed||[]).forEach(lbl=>tr.push(`<span class="tag gone">${lbl}</span>`));
   const lv=S.love;
   const cur=lv.st==='married'?`老婆 ${lv.partner}（${lv.kids}）`:lv.st==='dating'?`交往中 ${lv.partner}（${lv.dyrs||0} 年）`:lv.st==='divorced'?'離婚':'未婚';
   const exStr=lv.exes.length?`｜前妻 ${lv.exes.map(e=>`${e.name}（${e.kids}）`).join('、')}`:'';
