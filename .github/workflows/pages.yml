@@ -1,0 +1,48 @@
+name: Deploy Pages
+
+# Deploys main to the site root and every design/* branch to a subfolder,
+# e.g. design/led-scoreboard -> https://<owner>.github.io/yakyulife/led-scoreboard/
+on:
+  push:
+    branches:
+      - main
+      - 'design/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assemble site from all branches
+        run: |
+          mkdir -p _site
+          git archive origin/main | tar -x -C _site
+          for b in $(git branch -r --format='%(refname:short)' | grep '^origin/design/'); do
+            slug=${b#origin/design/}
+            mkdir -p "_site/$slug"
+            git archive "$b" | tar -x -C "_site/$slug"
+          done
+          find _site -name '.github' -type d -prune -exec rm -rf {} +
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
