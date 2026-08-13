@@ -70,10 +70,33 @@ a{color:var(--info)}
 #bd-name small{color:var(--dim);font-weight:500;font-size:12px;margin-left:6px;font-family:var(--sans)}
 #bd-team{color:var(--accent);font-size:12.5px;font-weight:700;letter-spacing:.06em;white-space:nowrap}
 #bd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.bd-cell{background:var(--panel2);border:1px solid var(--edge);border-radius:var(--r);padding:4px 6px 3px;text-align:center}
+.bd-cell{position:relative;background:var(--panel2);border:1px solid var(--edge);border-radius:var(--r);padding:4px 6px 3px;text-align:center}
 .bd-cell b{display:block;font-family:var(--disp);font-size:17px;font-weight:700;color:var(--accent);
   text-shadow:var(--glow);line-height:1.2}
 .bd-cell span{font-size:10px;color:var(--dim);letter-spacing:.15em}
+/* salary cell: bare number in the value row, unit carried by the label,
+   full amount in an out-of-flow tip. nowrap on both rows because the label's
+   CJK gives the line-breaker opportunities the bare digits do not. */
+#bd-sal,#bd-sal-lbl{white-space:nowrap}
+#bd-sal-cell{cursor:pointer;outline:none}
+.bd-tip{position:absolute;top:calc(100% + 6px);right:0;z-index:3;white-space:nowrap;
+  font-style:normal;font-family:var(--mono);font-size:12px;font-weight:400;letter-spacing:0;
+  color:var(--text);background:var(--panel2);border:1px solid var(--edge);
+  border-radius:min(var(--r),6px);padding:4px 8px;box-shadow:0 4px 12px var(--shadow);
+  opacity:0;pointer-events:none;transition:opacity .15s}
+/* gate hover so a touch tap does not latch :hover and leave the tip stuck open */
+@media (hover:hover){ #bd-sal-cell:hover .bd-tip{opacity:1} }
+#bd-sal-cell.show .bd-tip,#bd-sal-cell:focus-visible .bd-tip{opacity:1}
+/* crossing 萬 -> 億 makes the figure look smaller (9,999 becomes 1.0), so pulse the label
+   once to surface the unit change. Colour only, no motion, and fill-mode stays none so the
+   label reverts on its own when the animation ends. --glow is none in the light themes,
+   which is why the colour carries the effect rather than the shadow. */
+@keyframes bd-unitflip{
+  0%{color:var(--dim)}
+  15%{color:var(--accent);text-shadow:var(--glow)}
+  60%{color:var(--accent);text-shadow:var(--glow)}
+  100%{color:var(--dim);text-shadow:none}}
+#bd-sal-lbl.unitflip{animation:bd-unitflip 1.6s ease-out 1}
 #lamps{display:flex;gap:14px;justify-content:center;margin-top:7px}
 .lamp{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--dim);letter-spacing:.12em}
 .lamp i{width:9px;height:9px;border-radius:50%;background:var(--panel2);border:1px solid var(--edge);display:inline-block}
@@ -90,8 +113,12 @@ a{color:var(--info)}
 .tl-brand .stitch{flex:none}
 .tl-brand b{font-family:var(--head);font-weight:900;font-size:16px;letter-spacing:.06em;display:block;line-height:1.3}
 .tl-brand span.sub{font-size:10px;color:var(--dim);letter-spacing:.2em;display:block}
-#tl-list{flex:1;position:relative;padding-left:16px;min-height:40px}
-#tl-list::before{content:'';position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--edge)}
+/* no flex-grow: the list hugs its content so the spine line grows with the career;
+   long careers scroll inside the list so the brand header and SEED footer stay fixed */
+#tl-list{flex:0 1 auto;min-height:40px;overflow-y:auto}
+/* the spine lives on the inner wrapper so it spans the full scrollable content */
+#tl-wrap{position:relative;padding-left:16px}
+#tl-wrap::before{content:'';position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--edge)}
 .tlg{margin-bottom:16px}
 .tlg-h{font-family:var(--head);font-size:10px;letter-spacing:.3em;color:var(--dim);font-weight:700;margin-bottom:9px;padding-left:8px}
 .tl-item{display:flex;align-items:center;gap:10px;margin-bottom:9px;cursor:pointer}
@@ -101,7 +128,7 @@ a{color:var(--info)}
 .tl-item.now .t{color:var(--accent);font-weight:700;font-size:13px}
 .tl-item .t b{color:var(--accent);font-weight:700}
 .tl-item.gone{cursor:default;opacity:.55}
-.tl-seed{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.tl-seed{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:auto} /* keeps the SEED footer at the column bottom now that the list no longer grows */
 .tl-seed b{color:var(--accent)}
 .tl-ver{display:block;font-size:10px;opacity:.7;letter-spacing:.05em;margin-top:2px}
 /* ---------- 主紀錄 ---------- */
@@ -155,6 +182,14 @@ table.fin td:first-child,table.fin th:first-child,table.st td:first-child,table.
 .btn.main small{color:inherit;opacity:.8}
 .btn.warn{border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
 #act .row2{display:flex;gap:8px}#act .row2 .btn{flex:1;text-align:center}
+/* trait side panel: desktop top-right list of unlocked hidden traits (hidden on mobile; settlement unchanged) */
+#trait-side{display:none}
+#trait-side.empty{display:none!important}
+#trait-side .tt{font-family:var(--head);font-size:12px;letter-spacing:.2em;color:var(--dim);font-weight:700;margin-bottom:8px}
+#trait-tags{display:flex;flex-direction:column;gap:6px}
+#trait-tags .trow{display:flex;align-items:center;gap:8px;min-width:0}
+#trait-tags .trow .tag{flex:none}
+#trait-tags .trow .td{flex:1;min-width:0;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 骰子與加點 */
 /* single row always: dice shrink evenly (44px cap) when the container is narrow */
 #dice{display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:10px}
@@ -250,16 +285,21 @@ body[data-theme='b'] .stitch::before,body[data-theme='b'] .stitch::after{content
   body:not(.mobile-ui) #app{display:grid;grid-template-columns:250px minmax(0,1fr) clamp(340px,31vw,400px);align-items:stretch;
     max-width:1360px;margin:0 auto;border-left:1px solid var(--edge);border-right:1px solid var(--edge)}
   body:not(.mobile-ui) #tl-side{display:block}
-  body:not(.mobile-ui) #tl-in{position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
+  body:not(.mobile-ui) #tl-in{position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden}
   body:not(.mobile-ui) #tl-strip{display:none}
   body:not(.mobile-ui) #board{padding:14px 26px 12px;padding-top:calc(14px + env(safe-area-inset-top,0px))}
   body:not(.mobile-ui) .bd-cell b{font-size:19px}
   body:not(.mobile-ui) #log{padding:18px 26px 26px}
+  /* the right column is a viewport-pinned full-height flex column (like the left
+     timeline column): traits stay at the top, actions stick to the bottom so the
+     gaze stays on the lower band (newest log + dice + choices), and neither
+     scrolls away with the body */
   body:not(.mobile-ui) #act-side{position:static;max-height:none;overflow:visible;border-top:none;border-left:1px solid var(--edge);box-shadow:none}
-  body:not(.mobile-ui) #act-in{position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:12px 6px 16px}
+  body:not(.mobile-ui) #trait-side{display:block;padding:14px 14px 10px;max-height:42vh;overflow-y:auto;flex:0 3 auto;min-height:0}
+  body:not(.mobile-ui) #act-in{position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden;padding:12px 6px 16px}
   body:not(.mobile-ui) #act-toggle{display:none!important}
   body:not(.mobile-ui) #act.collapsed{display:block!important}
-  body:not(.mobile-ui) #act{padding:8px 14px 16px}
+  body:not(.mobile-ui) #act{padding:8px 14px 16px;margin-top:auto;overflow-y:auto;min-height:0}
   body:not(.mobile-ui) #start .wrap{padding-top:64px}
   body.mobile-ui #app{max-width:560px;margin:0 auto}
   #fld-ui{display:block} /* unguarded: visible in both layouts so it can switch back */
@@ -308,7 +348,7 @@ body[data-theme='b'] .stitch::before,body[data-theme='b'] .stitch::after{content
         <div class="bd-cell"><b id="bd-age">16</b><span>年齡</span></div>
         <div class="bd-cell"><b id="bd-year">2026</b><span>年份</span></div>
         <div class="bd-cell"><b id="bd-ovr">30</b><span>綜合</span></div>
-        <div class="bd-cell"><b id="bd-sal">0</b><span>生涯薪(萬)</span></div>
+        <div class="bd-cell" id="bd-sal-cell" tabindex="0"><b id="bd-sal">0</b><span id="bd-sal-lbl">生涯薪(萬)</span><i class="bd-tip" id="bd-sal-tip"></i></div>
       </div>
       <div id="lamps">
         <span class="lamp" id="lp0"><i></i>季初</span>
@@ -320,6 +360,7 @@ body[data-theme='b'] .stitch::before,body[data-theme='b'] .stitch::after{content
     <main id="log"></main>
   </div>
   <aside id="act-side"><div id="act-in">
+    <div id="trait-side"><div class="tt">特質</div><div id="trait-tags"></div></div>
     <button id="act-toggle" style="display:none">⌄ 收合選項</button>
     <footer id="act" style="display:none"></footer>
   </div></aside>
@@ -565,6 +606,34 @@ function traitCard(key,name,desc,tone){ S.traits[key]=true;
   card(tone||'gold','隱藏屬性解鎖：'+name,desc); board(0); }
 function removeTrait(key,label){ if(S.traits[key]){ S.traits[key]=false;
     if(!S.removed.includes(label))S.removed.push(label); } }
+/* ---------- trait names/order/styles/effects, shared by the settlement tags, the share image and the desktop trait panel ---------- */
+const TRAIT_KEYS={pos:['legend','taiwan','goldcloth','mrteam','confidante','genius','iron','late','disc','academy','intlace','franchise','clutch','phoenix','rubber','onetool','smallschool','grinder','combo','rainbow'],
+  neg:['glass','scum','yips','distract','cancer','ambience','thief']};
+const TRAIT_N={genius:'天才',iron:'鐵人',glass:'玻璃人',scum:'渣男',late:'大器晚成',disc:'自律狂',academy:'學院派',intlace:'國際賽之鬼',franchise:'神主牌',clutch:'大心臟',phoenix:'浴火重生',onetool:'只會這個',rubber:'橡膠手臂',goldcloth:'黃金聖衣',confidante:'閨中密友',smallschool:'小學校之光',grinder:'努力仔',yips:'失憶症',distract:'外務纏身',cancer:'更衣室毒瘤',ambience:'氣氛大師',thief:'薪水小倫',combo:'大巧不工',taiwan:'Team Taiwan'};
+function traitName(k){
+  if(k==='mrteam')return (teamNick(S.mrTeamName||'')||'')+'先生';
+  if(k==='legend')return (S.legendLeague||'')+'歷史級球星';
+  if(k==='rainbow')return (S.rainbowLg||'')+'七彩球衣';
+  return TRAIT_N[k]||k; }
+function traitTagStyle(k){
+  if(TRAIT_KEYS.neg.includes(k))return 'background:#2a0f0f;border-color:#c0392b;color:#ff8b7a'; /* 負向:紅 */
+  if(k==='legend'||k==='taiwan')return 'background:#3a2c05;border-color:#ffc95c;color:#ffe08a'; /* 歷史級/挺台灣:金 */
+  if(k==='goldcloth')return 'background:#3a3505;border-color:#e8d43a;color:#fff35a'; /* 黃金聖衣:黃 */
+  if(k==='mrteam'){ const tc=TEAM_COLOR[S.mrTeamName]||'#ffc95c'; return 'background:#1a1a1a;border-color:'+tc+';color:'+tc; }
+  if(k==='genius')return 'background:#232733;border-color:#c8d0e0;color:#e8eef7'; /* 天才:銀 */
+  return ''; /* 正向:預設琥珀 */ }
+const TRAIT_FX={genius:'訓練骰永久 4 點起，事件卡好結果機率 70%',late:'訓練骰永久 3 點起，事件卡好結果機率 70%',disc:'衰退曲線整體延後兩年',academy:'25 歲前受傷率 −5%、季初擲骰期望值提升',iron:'受傷機率上限 10%',clutch:'全力一搏成功率天才級、成功 +4／失敗僅 −2、受傷風險降級',combo:'季初自動擲 1 顆骰，加在專精的能力上',rubber:'TJ 量表上限翻倍、打針成功率翻倍',phoenix:'玻璃人懲罰解除，受傷率恢復正常',intlace:'國際賽不增加受傷風險，每次徵召能力點保底 +2',franchise:'母隊續約年薪係數固定 ≥×1.2，引退評價加成',goldcloth:'效力台中猛瑪滿十年，主場的信仰',mrteam:'同一支球隊十五年，球隊的代名詞',taiwan:'國際賽徵召超過 5 次的國家隊常客',confidante:'紅粉知己遍佈，情場的隱藏稱號',smallschool:'小學校出身，站上頂級舞台',grinder:'平庸天賦，靠汗水熬成的生涯',legend:'名人堂首輪入選的歷史級評價',rainbow:'同一聯盟效力球隊數爆表',glass:'受傷機率下限 40%',yips:'系統評價 −3，升上更高層級或奪得年度獎項可解除',distract:'季初擲骰永久 −1 顆（最低 2 顆）',cancer:'季中被交易機率大增、續約條件惡化',ambience:'轉隊機率永久提高',thief:'事件卡失敗率永久 +10%',scum:'每次外遇被抓到，全能力 −5',onetool:'只剩一項武器的替補奇兵，出賽數銳減'};
+function renderTraits(){ /* desktop trait side panel (presentation only) */
+  const el=$('trait-tags'),box=$('trait-side'); if(!el||!box)return;
+  let h='';
+  if(S&&S.traits){
+    /* one row per trait: tag + inline effect text (ellipsized; full text on hover) */
+    const row=(style,name,fx)=>`<div class="trow" title="${fx}"><span class="tag" style="${style}" title="${fx}">${name}</span><span class="td">${fx}</span></div>`;
+    [...TRAIT_KEYS.pos,...TRAIT_KEYS.neg].forEach(k=>{ if(S.traits[k])h+=row(traitTagStyle(k),traitName(k),TRAIT_FX[k]||''); });
+    (S.removed||[]).forEach(l=>h+=`<div class="trow"><span class="tag" style="text-decoration:line-through;opacity:.4;color:#8a8a8a;border-color:#4a4a4a">${l}</span><span class="td" style="opacity:.4">已解除</span></div>`);
+  }
+  el.innerHTML=h;
+  box.classList.toggle('empty',!h); }
 /* 只會這個:只吃三種角色維度——打擊(力量/Contact)、跑壘(速度)、守備(綜合) */
 function careerAllStars(){ let n=0; ['CPBL','NPB','MLB'].forEach(b=>{ if(S.stats[b])n+=(S.stats[b].AS||0); }); return n; }
 function toolGap(){ const a=S.ab;
@@ -894,6 +963,13 @@ function salaryFor(lv,d){
   } return 0;
 }
 const fmtMoney=w=>{ const y=Math.floor(w/10000),m=Math.round(w%10000); return (y?y+'億':'')+(m?m.toLocaleString()+'萬':(y?'':'0萬')); };
+/* scoreboard-only compact form: one unit at a time, 1 decimal above 1億.
+   Value and unit are returned separately so the unit can sit in the cell label,
+   leaving the value row purely numeric like the other three cells.
+   Truncated, never rounded up, so the glanceable figure never exceeds the real one
+   (19,999萬 -> 1.9億, matching the card's 1億9,999萬 rather than overstating it as 2.0億).
+   Switches unit at exactly the same 10,000萬 threshold as fmtMoney. */
+const salParts=w=>w<10000?{v:w.toLocaleString(),u:'萬'}:{v:(Math.floor(w/1000)/10).toFixed(1),u:'億'};
 /* ================= UI 基礎 ================= */
 const $=id=>document.getElementById(id);
 var _curYearBody=null; /* 當前年度的內容容器 */
@@ -981,7 +1057,8 @@ function renderTimeline(){
       html+=`<div class="tl-item${now?' now':''}${(gone&&!now)?' gone':''}" data-i="${i}"><span class="dot"></span><span class="t">${e.year} ${e.lab}${e.note?' <b>'+e.note+'</b>':''}</span></div>`;
     });
     if(cur!==null)html+='</div>';
-    list.innerHTML=html;
+    list.innerHTML='<div id="tl-wrap">'+html+'</div>';
+    list.scrollTop=list.scrollHeight; /* keep the newest year in view */
   }
   if(strip){
     strip.innerHTML=TL.map((e,i)=>`<span class="tl-chip${i===TL.length-1?' now':''}" data-i="${i}">${e.year}${e.note?'★':''}</span>`).join('');
@@ -1045,9 +1122,11 @@ function careerTimelineCard(){ /* two-layer horizontal timeline for the career s
 }
 function card(cls,title,html){ const d=document.createElement('div'); d.className='card '+cls;
   d.innerHTML=(title?`<h4>${title}</h4>`:'')+html; logTarget().appendChild(d);
+  renderTraits(); /* settlement-time trait unlocks emit a card without a board() refresh */
   scrollBottom(); }
 function divider(t){ /* 每個 divider 開啟新的年度摺疊區塊 */ const log=$('log'); const blocks=log.querySelectorAll('.yr-block'); /* 替剛結束的「上一年」加上下拉箭頭標記，但保留展開（不加上 collapsed） */ const prev = blocks[blocks.length - 1]; if(prev){ const h = prev.querySelector('.yr-head'); if(h && prev.querySelector('.yr-body').children.length) h.classList.add('has-body'); } /* 找到「前年」（倒數第二個區塊）並將其摺疊起來 */ const prevPrev = blocks[blocks.length - 2]; if(prevPrev){ prevPrev.classList.add('collapsed'); } /* 建新區塊 */ const block=document.createElement('div'); block.className='yr-block'; const head=document.createElement('div'); head.className='yr-head'; head.textContent=t; const body=document.createElement('div'); body.className='yr-body'; head.onclick=()=>block.classList.toggle('collapsed'); block.appendChild(head); block.appendChild(body); log.appendChild(block); _curYearBody=body; /* 超過上限:移除最舊的年度區塊(釋放 DOM) */ const newBlocks=log.querySelectorAll('.yr-block'); if(newBlocks.length>MAX_YEARS){ for(let i=0;i<newBlocks.length-MAX_YEARS;i++)newBlocks[i].remove(); } }
 function board(phase){
+  renderTraits();
   $('bd-name').innerHTML=`${S.name}<small>${S.dpos?DPN[S.dpos]:POSN[S.pos]}${S.role?'·'+roleN(S.role):''}·${playerType()}${S.traits.genius?' ★':''}</small>`;
   let t;
   if(S.stage==='HS')t=S.team+'（高'+['一','二','三'][S.stageYr-1]+'）';
@@ -1067,7 +1146,14 @@ function board(phase){
     
     $('bd-team').innerHTML = dot + `<span style="color:${txtColor}; ${bgStyle} font-weight:900;">${t}</span>`; }
   $('bd-age').textContent=S.age; $('bd-year').textContent=S.year;
-  $('bd-ovr').textContent=ovr(); if(S.pos==='P'){const el=$('bd-tj'); if(el)el.textContent='';} $('bd-sal').textContent=Math.round(S.salary).toLocaleString();
+  $('bd-ovr').textContent=ovr(); if(S.pos==='P'){const el=$('bd-tj'); if(el)el.textContent='';}
+  { const sal=Math.round(S.salary),sp=salParts(sal); $('bd-sal').textContent=sp.v;
+    const lb=$('bd-sal-lbl');
+    if(lb){ const prev=lb.dataset.u; lb.textContent='生涯薪('+sp.u+')';
+      /* prev is unset on the first render of a career, so the opening board never pulses */
+      if(prev&&prev!==sp.u){ lb.classList.remove('unitflip'); void lb.offsetWidth; lb.classList.add('unitflip'); }
+      lb.dataset.u=sp.u; }
+    const tip=$('bd-sal-tip'); if(tip)tip.textContent=fmtMoney(sal)+' 台幣'; }
   [0,1,2].forEach(i=>$('lp'+i).classList.toggle('on',i===phase));
 }
 function actClear(){ const a=$('act'); a.innerHTML=''; a.classList.remove('collapsed');
@@ -2700,17 +2786,7 @@ function endGame(reason){
   card(S.honors.length?'gold':'','獎項與大賽成績', honorsHTML);
   /* 特質與薪資 */
   const tr=[];
-  const TN={genius:'天才',iron:'鐵人',glass:'玻璃人',scum:'渣男',late:'大器晚成',disc:'自律狂',academy:'學院派',intlace:'國際賽之鬼',franchise:'神主牌',clutch:'大心臟',phoenix:'浴火重生',onetool:'只會這個',rubber:'橡膠手臂',goldcloth:'黃金聖衣',mrteam:(teamNick(S.mrTeamName||'')||'')+'先生',confidante:'閨中密友',smallschool:'小學校之光',grinder:'努力仔',legend:(S.legendLeague||'')+'歷史級球星',yips:'失憶症',distract:'外務纏身',cancer:'更衣室毒瘤',ambience:'氣氛大師',thief:'薪水小倫',combo:'大巧不工',rainbow:(S.rainbowLg||'')+'七彩球衣',taiwan:'Team Taiwan'};
-  const posT={pos:['legend','taiwan','goldcloth','mrteam','confidante','genius','late','disc','academy','intlace','franchise','clutch','phoenix','rubber','onetool','smallschool','grinder','combo','rainbow'],neg:['glass','scum','yips','distract','cancer','ambience','thief']};
-  const tagStyle=k=>{
-    if(k==='legend'||k==='taiwan')return 'background:#3a2c05;border-color:#ffc95c;color:#ffe08a'; /* 歷史級/挺台灣:金 */
-    if(k==='goldcloth')return 'background:#3a3505;border-color:#e8d43a;color:#fff35a'; /* 黃金聖衣:黃 */
-    if(k==='mrteam'){ const tc=TEAM_COLOR[S.mrTeamName]||'#ffc95c'; return 'background:#1a1a1a;border-color:'+tc+';color:'+tc; }
-    if(k==='genius')return 'background:#232733;border-color:#c8d0e0;color:#e8eef7';        /* 天才:銀 */
-    return ''; /* 正向:預設琥珀 */
-  };
-  posT.pos.forEach(k=>{ if(S.traits[k])tr.push(`<span class="tag" style="${tagStyle(k)}">${TN[k]}</span>`); });
-  posT.neg.forEach(k=>{ if(S.traits[k])tr.push(`<span class="tag" style="background:#2a0f0f;border-color:#c0392b;color:#ff8b7a">${TN[k]}</span>`); });
+  [...TRAIT_KEYS.pos,...TRAIT_KEYS.neg].forEach(k=>{ if(S.traits[k])tr.push(`<span class="tag" style="${traitTagStyle(k)}">${traitName(k)}</span>`); });
   (S.removed||[]).forEach(lbl=>tr.push(`<span class="tag" style="text-decoration:line-through;opacity:.4;color:#8a8a8a;border-color:#4a4a4a">${lbl}</span>`));
   const lv=S.love;
   const cur=lv.st==='married'?`老婆 ${lv.partner}（${lv.kids}）`:lv.st==='dating'?`交往中 ${lv.partner}（${lv.dyrs||0} 年）`:lv.st==='divorced'?'離婚':'未婚';
@@ -2780,9 +2856,7 @@ function shareImage(evals,out){
   const isP=S.pos==='P';
   const tiers=evals.map(t=>t.replace(/<[^>]+>/g,''));
   /* 特性(保留 + 刪除線標記) */
-  const TN2={legend:(S.legendLeague||'')+'歷史級球星',taiwan:'Team Taiwan',goldcloth:'黃金聖衣',genius:'天才',iron:'鐵人',glass:'玻璃人',scum:'渣男',late:'大器晚成',disc:'自律狂',academy:'學院派',intlace:'國際賽之鬼',franchise:'神主牌',clutch:'大心臟',phoenix:'浴火重生',onetool:'只會這個',rubber:'橡膠手臂',mrteam:(teamNick(S.mrTeamName||'')||'')+'先生',confidante:'閨中密友',smallschool:'小學校之光',grinder:'努力仔',yips:'失憶症',distract:'外務纏身',cancer:'更衣室毒瘤',ambience:'氣氛大師',thief:'薪水小倫',combo:'大巧不工',rainbow:(S.rainbowLg||'')+'七彩球衣'};
-  const negK=['glass','scum','yips','distract','cancer','ambience','thief'];
-  const keepTr=Object.keys(TN2).filter(k=>S.traits[k]).map(k=>({label:TN2[k],key:k,neg:negK.includes(k)}));
+  const keepTr=[...TRAIT_KEYS.pos,...TRAIT_KEYS.neg].filter(k=>S.traits[k]).map(k=>({label:traitName(k),key:k,neg:TRAIT_KEYS.neg.includes(k)}));
   const remTr=(S.removed||[]).map(l=>({label:l,key:'',neg:false,rem:true}));
   /* 生涯數據列(每聯盟一列) */
   const leagues=['MLB','NPB','CPBL'].filter(b=>S.stats[b]);
@@ -3119,6 +3193,14 @@ const PWA_ICON_512='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAA
 })();
 (function(){ const vb=document.getElementById('ver-badge'); if(vb)vb.textContent=APP_VER;
   const tv=document.getElementById('tl-ver'); if(tv)tv.textContent=APP_VER; })();
+/* touch has no hover: tap the salary cell to reveal the full amount, tap again to close.
+   Never dismisses on a timer — the user decides when it goes away. */
+(function(){ const cell=document.getElementById('bd-sal-cell'); if(!cell)return;
+  cell.addEventListener('click',()=>cell.classList.toggle('show'));
+  /* on pointer devices :hover already governs the tip; make sure a stray click cannot
+     leave it pinned open after the cursor has left the cell */
+  if(window.matchMedia('(hover:hover)').matches)
+    cell.addEventListener('mouseleave',()=>cell.classList.remove('show')); })();
 </script>
 </body>
 </html>
