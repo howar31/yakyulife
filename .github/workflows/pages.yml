@@ -39,6 +39,9 @@ jobs:
             git archive "$b" | tar -x -C "_site/$slug"
           done
           find _site -name '.github' -type d -prune -exec rm -rf {} +
+          # Upstream ships a CNAME for its own custom domain. Publishing it here would
+          # make this fork's Pages claim that domain and break the lab subpaths.
+          find _site -name CNAME -delete
 
       - uses: actions/upload-pages-artifact@v3
         with:
