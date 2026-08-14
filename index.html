@@ -248,14 +248,14 @@ body[data-theme='d'] .die.active{border-color:var(--accent);box-shadow:0 3px 10p
 .field input{width:100%;background:var(--panel);border:1px solid var(--edge);border-radius:var(--r);color:var(--text);
   font-family:var(--sans);font-size:16px;padding:11px 14px;outline:none}
 .field input:focus{border-color:var(--accent)}
-.player-id-input{display:grid;grid-template-columns:minmax(0,1fr) clamp(82px,20%,100px);align-items:stretch;
+.player-id-input{display:grid;grid-template-columns:minmax(0,1fr) clamp(100px,25%,120px);align-items:stretch;
   background:var(--panel);border:1px solid var(--edge);border-radius:var(--r);overflow:hidden;transition:border-color .15s}
 .player-id-input:focus-within{border-color:var(--accent)}
 .player-id-input input{min-width:0;background:transparent;border:0;border-radius:0}
 .player-id-input input:focus{border-color:transparent}
 .jersey-input{display:flex;align-items:center;justify-content:center;gap:4px;border-left:1px solid var(--edge)}
 .jersey-input span{color:var(--accent);font-family:var(--mono);font-size:15px;font-weight:700}
-.player-id-input .jersey-input input{width:3ch;padding:11px 0;text-align:left;font-family:var(--mono)}
+.player-id-input .jersey-input input{width:5ch;padding:11px 0;text-align:left;font-family:var(--mono)}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .seg.two{grid-template-columns:repeat(2,1fr)}
 .seg button{background:var(--panel);border:1px solid var(--edge);border-radius:var(--r);color:var(--dim);
@@ -384,12 +384,12 @@ body.big-text #alloc-full .af-title{font-size:17.4px}
   <div class="wrap">
     <div class="stitch"></div>
     <h1 id="logo-tap">YaKyoLife<br><em>棒球人生模擬器</em></h1>
-    <div id="ver-badge" style="position:fixed;top:6px;right:8px;font-size:10px;letter-spacing:1px;color:var(--dim);opacity:.55;font-family:monospace;z-index:50;pointer-events:none">v1.4.3</div>
+    <div id="ver-badge" style="position:fixed;top:6px;right:8px;font-size:10px;letter-spacing:1px;color:var(--dim);opacity:.55;font-family:monospace;z-index:50;pointer-events:none">v1.4.4</div>
     <p class="sub">高中三年養成 → 選秀・旅日・旅美 → 國際賽 → 衰退與引退。每一顆骰子都算數。</p>
     <div class="field"><label for="in-name">球員資料</label>
       <div class="player-id-input">
-        <input id="in-name" maxlength="10" value="有有子" aria-label="球員姓名">
-        <div class="jersey-input"><span aria-hidden="true">#</span><input id="in-number" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="11" aria-label="背號"></div>
+        <input id="in-name" maxlength="10" placeholder="姓名" aria-label="球員姓名">
+        <div class="jersey-input"><span aria-hidden="true">#</span><input id="in-number" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="背號" aria-label="背號"></div>
       </div>
     </div>
     <div class="field"><label>守位</label>
@@ -588,7 +588,7 @@ function dposReview(cont){
     f:()=>{ S.dpos=p; card('info','守位調整',`球團季末評估後，新球季改守 <b class="hl">${DPN[p]}</b>。`); cont(); }}));
   choose(`守位會議：教練團認為你的守備已撐不住 ${DPN[S.dpos]}（${LV[S.lv].n}標準）`,opts);
 }
-const APP_VER='v1.4.3';
+const APP_VER='v1.4.4';
 const OFFICIAL_URL='https://www.yakyolife.com/';
 const OFFICIAL_HOST=OFFICIAL_URL.replace(/^https?:\/\//,'').replace(/\/$/,'');
 const TEAM_COLOR={
@@ -3712,39 +3712,50 @@ function defaultPlayer(pos){
   if(DEFAULT_PLAYERS[pos])return DEFAULT_PLAYERS[pos];
   return DEFAULT_PLAYER_PAIRS[2+Math.floor(Math.random()*2)];
 }
-function isDefaultPlayerPair(name,jersey){
-  const no=Number(jersey);
-  return DEFAULT_PLAYER_PAIRS.some(p=>p.name===name.trim()&&p.jersey===no);
-}
+const PLAYER_NAME_KEY='yakyu-player-name';
+const PLAYER_JERSEY_KEY='yakyu-player-jersey';
+/* 第一次進入保持空白；玩家開始過生涯後，重新整理或重新開始時帶回上次輸入。 */
+try{
+  $('in-name').value=(localStorage.getItem(PLAYER_NAME_KEY)||'').slice(0,10);
+  $('in-number').value=(localStorage.getItem(PLAYER_JERSEY_KEY)||'').slice(0,2);
+}catch(e){}
 $('seed-show').value=SEED;
 $('seed-re').onclick=e=>{e.preventDefault();SEED=Math.random().toString(36).slice(2,10);$('seed-show').value=SEED;};
 document.querySelectorAll('#seg-pos button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#seg-pos button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); selPos=b.dataset.v;
-  /* 只有仍使用任一組系統預設姓名＋背號時才跟著守位切換；玩家自訂任一項後不再覆蓋。 */
-  if(isDefaultPlayerPair($('in-name').value,$('in-number').value)){
-    const def=defaultPlayer(selPos); /* 捕手／外野在切換守位當下隨機決定 */
-    $('in-name').value=def.name;
-    $('in-number').value=String(def.jersey);
-  }
 });
 $('btn-start').onclick=()=>{
   const sv=$('seed-show').value.trim(); if(sv)SEED=sv; /* 玩家可直接輸入流水碼 */
   history.replaceState(null,'','?seed='+encodeURIComponent(SEED));
   seedInit(SEED);
-  const nm=$('in-name').value.trim();
+  const enteredName=$('in-name').value.trim();
   const rawNo=$('in-number').value.trim();
-  const jersey=Number(rawNo);
-  if(!nm){
-    $('in-name').setCustomValidity('請輸入球員姓名。');
-    $('in-name').reportValidity(); return;
+  const useDefault=!enteredName&&!rawNo;
+  let nm=enteredName,jersey=Number(rawNo);
+  if(useDefault){
+    const def=defaultPlayer(selPos);
+    nm=def.name; jersey=def.jersey;
+  }else{
+    /* 只填其中一欄仍視為資料不完整，避免自訂姓名配到系統背號或反過來。 */
+    if(!nm){
+      $('in-name').setCustomValidity('請輸入球員姓名，或將姓名與背號都留空使用預設球員。');
+      $('in-name').reportValidity(); return;
+    }
+    $('in-name').setCustomValidity('');
+    if(rawNo===''||!Number.isInteger(jersey)||jersey<0||jersey>99){
+      $('in-number').setCustomValidity('背號請輸入 0～99 的整數，或將姓名與背號都留空使用預設球員。');
+      $('in-number').reportValidity(); return;
+    }
   }
   $('in-name').setCustomValidity('');
-  if(!Number.isInteger(jersey)||jersey<1||jersey>99){
-    $('in-number').setCustomValidity('背號請輸入 1～99 的整數。');
-    $('in-number').reportValidity(); return;
-  }
   $('in-number').setCustomValidity('');
+  if(!useDefault){
+    try{
+      localStorage.setItem(PLAYER_NAME_KEY,nm);
+      localStorage.setItem(PLAYER_JERSEY_KEY,String(jersey));
+    }catch(e){}
+  }
   S=newState(nm,jersey,selPos,null);
   S.teamName=function(){
     if(!this.orgTeam)return '';
