@@ -15,9 +15,34 @@ import {playerType, ovr} from '../engine/ability.js?v=1.5.4';
 export const $=id=>document.getElementById(id);
 export let _curYearBody=null; /* 當前年度的內容容器 */
 export function logTarget(){ return _curYearBody || $('log'); }
+/* The first block the running action appended. Pinning the document bottom is right while an
+   action emits one short card, but a season settlement emits five or six at once and the pin
+   then pushes the opening cards up under the sticky bar: measured over a full career on a
+   390x844 phone, 9 of 100 card-producing actions began with a card that was entirely
+   off-screen, the worst one 300px above the bar. Anchoring on the step's first block starts
+   the text the action produced at the top of the reading area instead. */
+let _stepAnchor=null;
+export function stepBegin(){ _stepAnchor=null; }
+function stepAnchorOn(el){ if(!_stepAnchor)_stepAnchor=el; }
 export function scrollBottom(){ /* iOS Safari 於 iframe 內平滑滾動易觸發白畫面,改用同步滾動+rAF */
-  try{ requestAnimationFrame(function(){ window.scrollTo(0, document.body.scrollHeight); }); }
-  catch(e){ try{ window.scrollTo(0, document.body.scrollHeight); }catch(_){} }
+  const run=function(){
+    const doc=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight);
+    const max=Math.max(0,doc-window.innerHeight);
+    let y=max;
+    const a=_stepAnchor, bd=$('board');
+    if(a&&a.isConnected&&bd&&bd.offsetParent!==null){
+      const bar=bd.getBoundingClientRect().height;             /* what the sticky bar covers */
+      const top=a.getBoundingClientRect().top+window.scrollY;  /* anchor's place in the document */
+      const want=Math.max(0,top-bar-8);
+      /* Override the bottom pin only where it would hide the anchor, and never pull back more
+         than one screen, so an anchor left over from an earlier step cannot yank the view up
+         the log. Everywhere else this is the old behaviour unchanged. */
+      if(top-max<bar && max-want<=window.innerHeight) y=want;
+    }
+    window.scrollTo(0,y);
+  };
+  try{ requestAnimationFrame(run); }
+  catch(e){ try{ run(); }catch(_){} }
 }
 /* Team colours are jersey primaries, not text colours. Measured against the old #1a1a1a chip
    background, 29 of the 48 fell below 3:1 and 紐約帝國 (#0C2340) sat at 1.10:1, which is what
@@ -76,10 +101,10 @@ window.addEventListener('beforeunload',function(ev){
   ev.preventDefault(); ev.returnValue='';
 });
 export function card(cls,title,html){ const d=document.createElement('div'); d.className='card '+cls;
-  d.innerHTML=(title?`<h4>${title}</h4>`:'')+html; logTarget().appendChild(d);
+  d.innerHTML=(title?`<h4>${title}</h4>`:'')+html; logTarget().appendChild(d); stepAnchorOn(d);
   renderTraits(); /* settlement-time trait unlocks emit a card without a board() refresh */
   scrollBottom(); }
-export function divider(t){ /* 每個 divider 開啟新的年度摺疊區塊 */ const log=$('log'); const blocks=log.querySelectorAll('.yr-block'); /* 替剛結束的「上一年」加上下拉箭頭標記，但保留展開（不加上 collapsed） */ const prev = blocks[blocks.length - 1]; if(prev){ const h = prev.querySelector('.yr-head'); if(h && prev.querySelector('.yr-body').children.length) h.classList.add('has-body'); } /* 找到「前年」（倒數第二個區塊）並將其摺疊起來 */ const prevPrev = blocks[blocks.length - 2]; if(prevPrev){ prevPrev.classList.add('collapsed'); } /* 建新區塊 */ const block=document.createElement('div'); block.className='yr-block'; const head=document.createElement('div'); head.className='yr-head'; head.textContent=t; const body=document.createElement('div'); body.className='yr-body'; head.onclick=()=>block.classList.toggle('collapsed'); block.appendChild(head); block.appendChild(body); log.appendChild(block); _curYearBody=body;
+export function divider(t){ /* 每個 divider 開啟新的年度摺疊區塊 */ const log=$('log'); const blocks=log.querySelectorAll('.yr-block'); /* 替剛結束的「上一年」加上下拉箭頭標記，但保留展開（不加上 collapsed） */ const prev = blocks[blocks.length - 1]; if(prev){ const h = prev.querySelector('.yr-head'); if(h && prev.querySelector('.yr-body').children.length) h.classList.add('has-body'); } /* 找到「前年」（倒數第二個區塊）並將其摺疊起來 */ const prevPrev = blocks[blocks.length - 2]; if(prevPrev){ prevPrev.classList.add('collapsed'); } /* 建新區塊 */ const block=document.createElement('div'); block.className='yr-block'; const head=document.createElement('div'); head.className='yr-head'; head.textContent=t; const body=document.createElement('div'); body.className='yr-body'; head.onclick=()=>block.classList.toggle('collapsed'); block.appendChild(head); block.appendChild(body); log.appendChild(block); stepAnchorOn(block); _curYearBody=body;
   /* Every year stays in the DOM: the career timeline is only useful if a player can
      reopen an early season, and dropping the oldest blocks made those years dead
      (TL[].el went stale, so tlScrollTo() silently did nothing).
@@ -121,7 +146,7 @@ export function choose(title,opts){
   opts.forEach(o=>{ const b=document.createElement('button');
     b.className='btn'+(o.main?' main':'')+(o.warn?' warn':'')+(o.center?' center':'');
     b.innerHTML=o.t+(o.s?`<small>${o.s}</small>`:'');
-    b.onclick=()=>{ actClear(); o.f(); }; a.appendChild(b); });
+    b.onclick=()=>{ stepBegin(); actClear(); o.f(); }; a.appendChild(b); });
   actToggleSync(); scrollBottom();
 }
 /* 所屬區塊(1A 定稿)。小標依階段在「所屬學校／所屬球隊」間切換(手機只留「所屬」，見 CSS)；

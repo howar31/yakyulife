@@ -1,4 +1,4 @@
-import {$, actClear, actToggleSync, board, scrollBottom} from './dom.js?v=1.5.4';
+import {$, actClear, actToggleSync, board, scrollBottom, stepBegin} from './dom.js?v=1.5.4';
 import {S} from '../core/state.js?v=1.5.4';
 import {ABL, POS_AB} from '../data/abilities.js?v=1.5.4';
 import {abCost, normalizeAbCarry, addAb} from '../engine/ability.js?v=1.5.4';
@@ -15,7 +15,11 @@ export function setAlloc(v){ ALLOC=v; }
 export function clearAlloc(){ ALLOC=null; }
 export function allocPlace(){
   if(!ALLOC)return;
-  const a=$('act'), full=document.body.classList.contains('big-text')&&isMobileLayout();
+  /* Every phone layout takes the overlay, not just the big-text one. Inside the strip the
+     panel grows to ~620px, which leaves the log 49px on a 390x844 phone and nothing at all on
+     a 360x780 one, and this is the most repeated screen in the game: 季初特訓 and 季末能力點
+     land once each per season. The squeeze was never about the type size. */
+  const a=$('act'), full=isMobileLayout();
   const s=$('act-side'); if(s)s.classList.toggle('alloc',!full);
   if(full){
     /* move the nodes out of #act before rewriting it, or the rewrite would destroy them */
@@ -78,7 +82,7 @@ export function allocUI(mode,label,done){
     const allCap=keys.every(k=>S.ab[k]>=80);
     if(remaining()===0||allCap){ const c=document.createElement('button'); c.className='btn main';
       c.textContent=(remaining()>0&&allCap)?'能力已達上限，捨棄剩餘骰子 ▸':'確認 ▸';
-      c.onclick=()=>{ actClear(); allocDone(touchedKeys,dice?true:false); done(); }; btm.appendChild(c); }
+      c.onclick=()=>{ stepBegin(); actClear(); allocDone(touchedKeys,dice?true:false); done(); }; btm.appendChild(c); }
     actToggleSync();
   }
   allocPlace();
