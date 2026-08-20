@@ -1,11 +1,11 @@
-import {S} from '../core/state.js';
-import {R, ri, pick, chance, clamp} from '../core/rng.js';
-import {ABL, POS_AB} from '../data/abilities.js';
-import {LV} from '../data/teams.js';
-import {card, choose, board} from '../ui/dom.js';
-import {addAb} from './ability.js';
-import {isSP} from './season.js';
-import {removeTrait} from '../flow/events.js';
+import {S} from '../core/state.js?v=1.5.4';
+import {R, ri, pick, chance, clamp} from '../core/rng.js?v=1.5.4';
+import {ABL, POS_AB} from '../data/abilities.js?v=1.5.4';
+import {LV} from '../data/teams.js?v=1.5.4';
+import {card, choose, board} from '../ui/dom.js?v=1.5.4';
+import {addAb} from './ability.js?v=1.5.4';
+import {isSP} from './season.js?v=1.5.4';
+import {removeTrait} from '../flow/events.js?v=1.5.4';
 export function tjAccrue(st,lv){ /* 球威風險 × 投法 × 角色標準化工作量；體力不參與。 */
   if(S.pos!=='P'||S.seasonFactor<=0||!st||!(st.G>0))return;
   const L=LV[lv||S.lv],effort={'全力投':1.30,'普通投':1.0,'養生球':0.80}[S.effort]||1.0;
@@ -24,6 +24,9 @@ export function tjAccrue(st,lv){ /* 球威風險 × 投法 × 角色標準化工
 export function tjCap(){ return S.traits.rubber?100:50; }
 export function tjGamble(cont){ /* 量表達上限:先扣 -5,再對賭 */
   if(S.pos!=='P'||S.tj<tjCap()){ cont(); return; }
+  /* 二次重建的「2～3 年內再度危機」是一次性期限：第一次真的拉警報後即已兌現，
+     不可讓 tjSecondYear 在往後每年持續把量表強制補滿。 */
+  if(S.tjCount===2&&Number.isFinite(S.tjSecondYear)&&S.year>S.tjSecondYear)S.tjSecondYear=null;
   S.tjCrises=(S.tjCrises||0)+1;
   const crisisBefore={vel:S.ab.vel,brk:S.ab.brk};
   addAb('vel',-5); addAb('brk',-5); board(1);
@@ -67,7 +70,7 @@ export function tjBigInjury(cont){
   S.tjCount++; S.rehab=1; S.tj=0; S.marketInjury='major';
   /* 5% 肩膀報廢 */
   if(chance(5)){ S.ab.vel=10; S.ab.brk=10; S.pot.vel=20; S.pot.brk=20;
-    card('bad','最壞的結果',`長期閃避手肘的痛處，你的姿勢逐漸變形，雖然表現看起來沒有下滑，但你清楚知道發力的地方已經跟巔峰時完全不一樣了。終於在投出其中一球後，有一股劇痛從長期代償的肩膀傳來，悔恨的眼淚流了下來，你的投手生涯即將走向終點。<br><b class="dn">肩膀報廢：球速與變化球降至 10，潛力上限降至 20。</b>`);
+    card('bad','最壞的結果',`長期閃避手肘的痛處，你的姿勢逐漸變形，投球姿勢彷彿在推鉛球。突然一陣劇痛，你突然發現你的手抬不起來了。<br><b class="dn">肩膀報廢：球速與變化球降至 10，潛力上限降至 20。</b>`);
     board(1); afterGamble('fail',cont); return; }
 
   /* 韌帶斷裂的懲罰 (-5) 以及手術後的回春 (+3~+10) */
@@ -98,7 +101,7 @@ export function injuryProb(){ /* 基礎風險從 24 降為 15，減少動不動�
   let p=15+S.injNext;
   if(S.age>=35)p+=12; else if(S.age>=32)p+=6;
   if(S.traits.academy&&S.age<25)p-=5; /* 學院派:25歲前科學化管理 */
-  if(S.traits.iron&&S.traits.glass)p=25;
+  if(S.traits.iron&&S.traits.glass)p=25; /* 兩者現已互斥,此分支僅供尚未覆蓋過的舊存檔相容 */
   else if(S.traits.iron)p=Math.min(p,10); /* 鐵人:基礎風險上限 10% */
   else if(S.traits.glass)p=Math.max(p,40);
   /* 事件卡等自找的額外風險(tmpInj)疊加在基礎之上,不受鐵人上限保護 */
@@ -128,10 +131,18 @@ export function rollInjury(){
     if(chance(20)){ S.rehab=1; txt+=`醫生搖搖頭：<b class="dn">明年也很難趕上開季</b>（明年整季報廢）。`; }
     card('bad','大傷',txt+injStatLoss(true));
     if(S.bigInj>=2&&!S.traits.glass&&S.age<32){ /* 32 歲後的大傷是老化,不再定性為玻璃體質 */
+      /* 玻璃人與鐵人互為對立體質，不可並存：本來是鐵人的話直接被玻璃人覆蓋過去。 */
+      const wasIron=!!S.traits.iron;
+      if(wasIron)removeTrait('iron','鐵人');
       S.traits.glass=true;
-      card('bad','隱藏素質解鎖：玻璃人','生涯第二次大傷。從此傷病如影隨形，未來每季受傷機率<b class="dn">不低於 40%</b>。'); }
+      S.removed=(S.removed||[]).filter(x=>x!=='玻璃人'); /* 曾被鐵人蓋掉又碎回來:清掉刪除線紀錄 */
+      if(wasIron)
+        card('bad','隱藏素質覆蓋：鐵人 → 玻璃人','大量的出賽，開始讓你原本如機器人般的身體出現變化，身體逐漸脆弱，最後變為易碎品。<br><b class="dn">鐵人解除</b>，未來每季受傷機率<b class="dn">不低於 40%</b>。');
+      else
+        card('bad','隱藏素質解鎖：玻璃人','生涯第二次大傷。從此傷病如影隨形，未來每季受傷機率<b class="dn">不低於 40%</b>。');
+      board(1); }
     else if(S.bigInj>=2&&!S.traits.glass&&S.age>=32){
-      card('info','醫療團隊評估','「這是歲月的損耗，不是體質問題。」——老將的傷,球團看得比誰都開。'); }
+      card('info','醫療團隊評估','你不是易碎，只是風化 －－大傷不再被定義為玻璃人體質，身體都能體諒你這些年的征戰。'); }
   }
 }
 export function injStatLoss(big){

@@ -1,13 +1,13 @@
-import {SEED, setSeed, seedInit} from './core/rng.js';
-import {S, setS, newState} from './core/state.js';
-import {APP_VER} from './config.js';
-import {POSN} from './data/abilities.js';
-import {LV} from './data/teams.js';
-import {$, card, modalClose, actToggleSync} from './ui/dom.js';
-import {THEME_KEY, BIG_KEY, applyTheme, applyMobileUI, applyBigText, updDispSum} from './ui/prefs.js';
-import {allocFullClose} from './ui/alloc.js';
-import {TL, resetTL, renderTimeline, tlScrollTo} from './ui/timeline.js';
-import {startYear} from './flow/phases.js';
+import {SEED, setSeed, seedInit} from './core/rng.js?v=1.5.4';
+import {S, setS, newState} from './core/state.js?v=1.5.4';
+import {APP_VER} from './config.js?v=1.5.4';
+import {POSN} from './data/abilities.js?v=1.5.4';
+import {LV} from './data/teams.js?v=1.5.4';
+import {$, card, modalClose, actToggleSync} from './ui/dom.js?v=1.5.4';
+import {THEME_KEY, BIG_KEY, applyTheme, applyMobileUI, applyBigText, updDispSum} from './ui/prefs.js?v=1.5.4';
+import {allocFullClose} from './ui/alloc.js?v=1.5.4';
+import {TL, resetTL, renderTimeline, tlScrollTo} from './ui/timeline.js?v=1.5.4';
+import {startYear} from './flow/phases.js?v=1.5.4';
 
 /* ================= 開場設定 ================= */
 /* iOS Safari zoom guards. Pinch: Safari ignores maximum-scale/user-scalable, so the
@@ -142,7 +142,7 @@ $('btn-start').onclick=()=>{
   $('board').style.display=''; $('act').style.display='';
   resetTL(); renderTimeline();
   const ts=$('tl-seed'); if(ts)ts.textContent=SEED;
-  card('info','球員誕生',`${S.year} 年春天，${POSN[S.pos]} <b class="hl">${S.name}</b> 加入 <b class="hl">${S.team}</b> 棒球隊。三年後的路，要自己選。<br><span style="color:var(--dim);font-size:12px">提示：22 歲前累積擲出 5 次「6」可覺醒隱藏素質。</span>`);
+  card('info','球員誕生',`${S.year} 年春天，${POSN[S.pos]} <b class="hl">${S.name}</b> 加入 <b class="hl">${S.team}</b> 棒球隊。雄心壯志，野心勃勃，他的世界正要因為棒球展開。<br><span style="color:var(--dim);font-size:12px">提示：22 歲前累積擲出 5 次「6」可覺醒隱藏素質。</span>`);
   startYear();
 };
 /* ================= PWA installability: manifest built at runtime as a Blob; icons are

@@ -1,9 +1,9 @@
-import {$, actClear, actToggleSync, board, scrollBottom} from './dom.js';
-import {S} from '../core/state.js';
-import {ABL, POS_AB} from '../data/abilities.js';
-import {abCost, normalizeAbCarry, addAb} from '../engine/ability.js';
-import {allocDone} from '../flow/events.js';
-import {isMobileLayout} from './prefs.js';
+import {$, actClear, actToggleSync, board, scrollBottom} from './dom.js?v=1.5.4';
+import {S} from '../core/state.js?v=1.5.4';
+import {ABL, POS_AB} from '../data/abilities.js?v=1.5.4';
+import {abCost, normalizeAbCarry, addAb} from '../engine/ability.js?v=1.5.4';
+import {allocDone} from '../flow/events.js?v=1.5.4';
+import {isMobileLayout} from './prefs.js?v=1.5.4';
 
 export function allocFullOpen(){ const f=$('alloc-full'); if(f)f.classList.add('show'); }
 export function allocFullClose(){ const f=$('alloc-full'); if(f)f.classList.remove('show'); }
@@ -56,7 +56,7 @@ export function allocUI(mode,label,done){
   function remaining(){ return dice?dice.length-idx:pool; }
   function render(){
     if(dice){ top.innerHTML='<div id="dice">'+dice.map((v,i)=>`<div class="die ${i<idx?'used':''} ${i===idx?'active':''} ${v===6?'six':''}">${v}</div>`).join('')+'</div>'; }
-    else top.innerHTML=`<div class="pool">剩餘可分配點數：${pool} 點（點一下能力 +1）</div>`;
+    else top.innerHTML=`<div class="pool">剩餘可分配點數：${pool} 點（點一下能力 +1點）</div>`;
     const cue=$('al-cue'); if(cue)cue.textContent=dice?`剩餘 ${remaining()} 顆骰子未分配`:`剩餘 ${remaining()} 點未分配`;
     rows.innerHTML='';
     keys.forEach(k=>{ normalizeAbCarry(k); const v=S.ab[k],cap=v>=80;

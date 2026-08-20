@@ -1,29 +1,64 @@
-import {S} from '../core/state.js';
-import {DPN, POSN, POS_ADJ_RUNS} from '../data/abilities.js';
-import {LG_N} from '../data/teams.js';
-import {TIER_TH, MILESTONE_DEF} from '../data/economy.js';
-import {fmtIP, slgOf, roleName3} from './season.js';
+import {S} from '../core/state.js?v=1.5.4';
+import {clamp} from '../core/rng.js?v=1.5.4';
+import {DPN, POSN, POS_ADJ_RUNS} from '../data/abilities.js?v=1.5.4';
+import {LG_N} from '../data/teams.js?v=1.5.4';
+import {TIER_TH, LEAGUE_K, MILESTONE_DEF} from '../data/economy.js?v=1.5.4';
+import {fmtIP, slgOf, roleName3, baseballERA, baseballWHIP} from './season.js?v=1.5.4';
 /* ================= 生涯終章 ================= */
 export function positionScore(st){
   if(!st||!st.DPG)return 0;
   let runs=0; Object.entries(st.DPG).forEach(([dp,g])=>{ runs+=(POS_ADJ_RUNS[dp]||0)*(g/162); });
   return runs*6; /* 與 DEF 每 1 defensive run = 6 分使用同一尺度 */
 }
-/* 後援名人堂校準：300 救援接近候選、400 救援具入選實力、500 救援可挑戰最高門檻。 */
-export function reliefMilestoneScore(st){
-  const sv=st&&st.SV||0;
-  if(sv>=500)return 1800;
-  if(sv>=400)return 1200;
-  if(sv>=300)return 800;
-  if(sv>=200)return 350;
+/* 後援名人堂校準：300 救援接近候選、400 救援具入選實力、500 救援可挑戰最高門檻。
+   里程碑本身依聯盟場次比例縮放(比照其他獎項門檻的作法)，避免場次較少的聯盟
+   (中職120場/日職143場)因為天生救援總數就比大聯盟(162場)少，同等地位的終結者
+   卻吃不到里程碑加分。 */
+const BUCKET_G={CPBL:120,NPB:143,MLB:162};
+export function reliefMilestoneScore(st,bucket){
+  const sv=st&&st.SV||0, r=(BUCKET_G[bucket]||162)/162;
+  if(sv>=500*r)return 1800;
+  if(sv>=400*r)return 1200;
+  if(sv>=300*r)return 800;
+  if(sv>=200*r)return 350;
   return 0;
 }
-export function pitcherCareerScore(st){
-  return st.W*13+(st.SV||0)*8+(st.HLD||0)*3+st.SO*0.9+st.IP*0.35+reliefMilestoneScore(st);
+/* 投手生涯評價的質量校正：純堆數據(局數/勝場/救援等)過去會讓長年低品質後援
+   在總分上輾壓真正壓制力強的先發。用生涯 ERA/WHIP 相對聯盟參考值(3.40/1.15，
+   對齊「稱職先發」與「王牌先發」的真實分界)算出一個 0.50~1.60 倍的品質係數，
+   乘回堆疊分數，讓失分率真正影響評價高低，同時讓各等級先發的級距拉開。 */
+export function pitcherQualityFactor(st){
+  const era=baseballERA(st), whip=baseballWHIP(st);
+  let q=1;
+  if(era!=null)q+=clamp((3.40-era)*0.15,-0.40,0.40);
+  if(whip!=null)q+=clamp((1.15-whip)*0.30,-0.20,0.20);
+  return clamp(q,0.50,1.60);
 }
-export function careerScore(st){
-  if(S.pos==='P')return pitcherCareerScore(st);
-  return st.H+st.HR*3+st.SB*0.8+st.RBI*0.5+st.BB*0.3+(st.DEF||0)*6+positionScore(st);
+export function pitcherCareerScore(st,bucket){
+  const base=st.W*13+(st.SV||0)*8+(st.HLD||0)*3+st.SO*0.9+st.IP*0.35+reliefMilestoneScore(st,bucket);
+  return base*pitcherQualityFactor(st);
+}
+/* 打者生涯評價的質量校正：對齊投手 pitcherQualityFactor 的設計，用生涯打擊率／OPS
+   相對聯盟參考值(0.270／0.760)算出 0.50~1.60 倍品質係數，讓打者也有跟投手對稱的
+   品質校正，不會因為打者本來沒有品質校正而系統性地比投手更難拿到榮譽級評價。
+   末尾 0.67 是配合 LEAGUE_K 重新以「絕對能力值換算生涯總分」實測校準出的尺度，
+   讓投手/打者在同一把 TIER_TH 尺上大致對齊(細節見 economy.js 的 LEAGUE_K 說明)。 */
+export function hitterQualityFactor(st){
+  const ab=st&&st.AB||0, pa=st&&st.PA||0;
+  if(!ab||!pa)return 1;
+  const avg=st.H/ab, obp=(st.H+(st.BB||0))/pa, slg=slgOf(st), ops=obp+slg;
+  let q=1;
+  q+=clamp((avg-0.270)*3.0,-0.35,0.35);
+  q+=clamp((ops-0.760)*0.6,-0.20,0.20);
+  return clamp(q,0.50,1.60);
+}
+export function hitterCareerScore(st){
+  const base=st.H+st.HR*3+st.SB*0.8+st.RBI*0.5+st.BB*0.3+(st.DEF||0)*6+positionScore(st);
+  return base*hitterQualityFactor(st)*0.67;
+}
+export function careerScore(st,bucket){
+  if(S.pos==='P')return pitcherCareerScore(st,bucket);
+  return hitterCareerScore(st);
 }
 export function primaryPos(){ /* 生涯主守位:過半→該位;無過半→工具人/搖擺人(年數降序) */
   if(S.pos==='P'){
@@ -67,7 +102,7 @@ export function posLegendPhrase(bucket){ /* 依守備占比與獎項決定守位
 export function honorScore(bucket){
   const lg={CPBL:'中職',NPB:'日職',MLB:'大聯盟'}[bucket];
   const champ={CPBL:'中職總冠軍',NPB:'日本一',MLB:'世界大賽冠軍'}[bucket];
-  const isAce=h=>h.includes('最佳投手')||h.includes('賽揚');
+  const isAce=h=>h.includes('最佳投手')||h.includes('最佳打者')||h.includes('賽揚');
   let sc=0,mvp=0,aceN=0,king=0;
   S.honors.forEach(h=>{
     if(h.includes(champ)){sc+=90;return;}
@@ -88,7 +123,12 @@ export function honorScore(bucket){
 export function tierOf(bucket){
   const st=S.stats[bucket]; if(!st)return null;
   const hs=honorScore(bucket);
-  const sc=careerScore(st)+hs.sc,th=TIER_TH[bucket];
+  /* 生涯評價折算依「這個聯盟這段生涯的實際角色」判斷，不是看目前角色：
+     救援數占推估出賽數四成以上視為終結者型生涯，套用終結者專屬折算值。 */
+  const posKey=S.pos!=='P'?'H':((st.SV||0)>=(st.IP||0)/1.05*0.4?'CL':'P');
+  /* [Kbase,Khonor]:數據累積分與獎項分分開折算(兩者的聯盟差異性質相反,詳見 economy.js) */
+  const k=((LEAGUE_K[bucket]||{})[posKey])||[1,1];
+  const sc=careerScore(st,bucket)*k[0]+hs.sc*k[1],th=TIER_TH[bucket];
   let i=sc>=th[0]?0:sc>=th[1]?1:sc>=th[2]?2:sc>=th[3]?3:4;
   /* 獎項保底:MVP/最高投手獎至少明星球員;單項王至少每日球員 */
   if(hs.mvp||hs.aceN)i=Math.min(i,1);
@@ -99,8 +139,8 @@ export function statTable(bucket){
   const st=S.stats[bucket]; if(!st)return '';
   let rows;
   if(S.pos==='P'){
-    const era=st.IP>0?(st.ER*9/st.IP).toFixed(2):'-';
-    const whip=st.IP>0?((st.H+st.BB)/st.IP).toFixed(2):'-';
+    const era=st.IP>0?baseballERA(st).toFixed(2):'-';
+    const whip=st.IP>0?baseballWHIP(st).toFixed(2):'-';
     rows=`<tr><th>Yrs</th><th>G</th><th>IP</th><th>W</th><th>L</th><th>SV</th><th>HLD</th><th>SO</th><th>BB</th><th>ERA</th><th>WHIP</th></tr>
     <tr><td>${st.yr}</td><td>${st.G}</td><td>${fmtIP(st.IP)}</td><td>${st.W}</td><td>${st.L}</td><td>${st.SV||0}</td><td>${st.HLD||0}</td><td>${st.SO}</td><td>${st.BB||0}</td><td>${era}</td><td>${whip}</td></tr>`;
   }else{
@@ -150,8 +190,8 @@ export function careerMilestones(){
 export function honorRank(awd){
   const intl=/經典賽|12強|奧運|亞運|國家隊/.test(awd);
   const league=intl?0:(/大聯盟|世界大賽/.test(awd)?1:(/日職|日本一/.test(awd)?2:(/中職/.test(awd)?3:4)));
-  const kind=/總冠軍|世界大賽冠軍|日本一$/.test(awd)?0:/年度MVP/.test(awd)?1:/MVP/.test(awd)?2:
-    /最佳投手|賽揚/.test(awd)?3:/金手套/.test(awd)?4:/守備聖經/.test(awd)?5:/王/.test(awd)?6:/明星賽/.test(awd)?8:7;
+  const kind=/總冠軍|世界大賽冠軍|日本一$/.test(awd)?0:/年度MVP/.test(awd)?1:/三冠王/.test(awd)?2:/MVP/.test(awd)?3:
+    /最佳投手|最佳打者|賽揚/.test(awd)?4:/金手套/.test(awd)?5:/守備聖經/.test(awd)?6:/王/.test(awd)?7:/明星賽/.test(awd)?9:8;
   return league*10+kind;
 }
 export function honorGroups(){

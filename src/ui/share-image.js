@@ -1,13 +1,13 @@
-import {S} from '../core/state.js';
-import {SEED} from '../core/rng.js';
-import {APP_VER, OFFICIAL_HOST} from '../config.js';
-import {TEAM_COLOR, LG_N} from '../data/teams.js';
-import {RP_TICKS} from '../data/economy.js';
-import {TRAIT_KEYS} from '../data/traits.js';
-import {teamChip} from './dom.js';
-import {traitNames} from './traits.js';
-import {fmtMoney} from '../engine/contract.js';
-import {rpTagline, rpFamily, RP_F3, RP_F2, rpCumData, rpIntlData, rpHonorItems, rpOrgOf, rpProData} from './retire.js';
+import {S} from '../core/state.js?v=1.5.4';
+import {SEED} from '../core/rng.js?v=1.5.4';
+import {APP_VER, OFFICIAL_HOST} from '../config.js?v=1.5.4';
+import {TEAM_COLOR, LG_N} from '../data/teams.js?v=1.5.4';
+import {RP_TICKS} from '../data/economy.js?v=1.5.4';
+import {TRAIT_KEYS} from '../data/traits.js?v=1.5.4';
+import {teamChip} from './dom.js?v=1.5.4';
+import {traitNames, traitColorRank} from './traits.js?v=1.5.4';
+import {fmtMoney} from '../engine/contract.js?v=1.5.4';
+import {rpTagline, rpFamily, RP_F3, RP_F2, rpCumData, rpIntlData, rpHonorItems, rpOrgOf, rpProData} from './retire.js?v=1.5.4';
 /* 結算圖（Canvas 產生 PNG，可長按儲存或自動下載）
    Single-sheet settlement layout from the design handoff, drawn 1:1 at the
    design's 820px width. The layout is rendered twice: a measure pass on a
@@ -34,13 +34,13 @@ export function shareImage(evals,picks,out){
   const GLOW=_tk('--glow','none')!=='none';
   const glowC=(_tk('--bgfx','none').match(/rgba?\([^)]*\)/)||[])[0]||null;
   const LGC={MLB:C_INFO,NPB:C_BAD,CPBL:C_ACC,MINOR:C_DIM};
-  /* 特性(保留 + 刪除線標記) */
-  const keepTr=[...TRAIT_KEYS.pos,...TRAIT_KEYS.neg].filter(k=>S.traits[k]).flatMap(k=>
+  /* 特性(保留 + 刪除線標記；依顏色分類排序，避免同色特性東插一個西插一個) */
+  const keepTr=[...TRAIT_KEYS.pos,...TRAIT_KEYS.neg].filter(k=>S.traits[k]).sort((a,b)=>traitColorRank(a)-traitColorRank(b)).flatMap(k=>
     traitNames(k).map(label=>({label,key:k,neg:TRAIT_KEYS.neg.includes(k)})));
   const remTr=(S.removed||[]).map(l=>({label:l,key:'',neg:false,rem:true}));
   function tagColor(o){ /* keep in sync with traitTagStyle() + the .tag defaults */
     if(o.rem)return {bg:'#242424',bd:'#4a4a4a',fg:'#8a8a8a'};
-    if(o.key==='legend'||o.key==='taiwan')return {bg:'#3a2c05',bd:'#ffc95c',fg:'#ffe08a'}; /* 金(歷史級/Team Taiwan) */
+    if(o.key==='legend'||o.key==='taiwan'||o.key==='pitcherTC'||o.key==='hitterTC')return {bg:'#3a2c05',bd:'#ffc95c',fg:'#ffe08a'}; /* 金(歷史級/Team Taiwan/三冠王) */
     if(o.key==='goldcloth')return {bg:'#3a3505',bd:'#e8d43a',fg:'#fff35a'}; /* 黃 */
     if(o.key==='mrteam')return teamChip(TEAM_COLOR[S.mrTeamName]||'#ffc95c');
     if(o.key==='genius')return {bg:'#232733',bd:'#c8d0e0',fg:'#e8eef7'}; /* 銀 */
