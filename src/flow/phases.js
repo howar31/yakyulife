@@ -1,21 +1,21 @@
-import {S, stepQ, nextStep, stageLabel} from '../core/state.js?v=1.5.4';
-import {R, ri, chance, clamp} from '../core/rng.js?v=1.5.4';
-import {ABL, POS_AB} from '../data/abilities.js?v=1.5.4';
-import {LV, PATHS, teamNick} from '../data/teams.js?v=1.5.4';
-import {AMA_ANNUAL} from '../data/economy.js?v=1.5.4';
-import {card, choose, board, divider} from '../ui/dom.js?v=1.5.4';
-import {tlNote, tlPush, tlRestage} from '../ui/timeline.js?v=1.5.4';
-import {allocUI} from '../ui/alloc.js?v=1.5.4';
-import {addAb, ovr, dposReview, statBonusTxt} from '../engine/ability.js?v=1.5.4';
-import {rollInjury, tjCap} from '../engine/injury.js?v=1.5.4';
-import {isMrTeamEligible} from '../engine/tenure.js?v=1.5.4';
-import {amateurSeason, proSeason, slgOf, currentSalaryRating, baseballERA, baseballWHIP} from '../engine/season.js?v=1.5.4';
-import {championshipChance} from '../engine/championship.js?v=1.5.4';
-import {buyoutRemaining, contractAnnual, contractMarketProfile, controlledAnnual, crossOffers, daibaFarewell, extensionOffer, faFlow, fmtMoney, handleDemotion, levelMinAnnual, makeContract, makeOffers, offseasonTradeCheck, pickOfferUI, signTo, teamChampRate} from '../engine/contract.js?v=1.5.4';
-import {drawEvents, removeTrait, checkChampionTrait} from './events.js?v=1.5.4';
-import {loveEvent} from './love.js?v=1.5.4';
-import {runDraft, pathChoiceHS, pathChoiceU4, advance} from '../engine/draft.js?v=1.5.4';
-import {endGame} from '../ui/retire.js?v=1.5.4';
+import {S, stepQ, nextStep, stageLabel} from '../core/state.js?v=1.5.5';
+import {R, ri, chance, clamp} from '../core/rng.js?v=1.5.5';
+import {ABL, POS_AB} from '../data/abilities.js?v=1.5.5';
+import {LV, PATHS, teamNick} from '../data/teams.js?v=1.5.5';
+import {AMA_ANNUAL} from '../data/economy.js?v=1.5.5';
+import {card, choose, board, divider} from '../ui/dom.js?v=1.5.5';
+import {tlNote, tlPush, tlRestage} from '../ui/timeline.js?v=1.5.5';
+import {allocUI} from '../ui/alloc.js?v=1.5.5';
+import {addAb, ovr, dposReview, statBonusTxt} from '../engine/ability.js?v=1.5.5';
+import {rollInjury, tjCap} from '../engine/injury.js?v=1.5.5';
+import {isMrTeamEligible} from '../engine/tenure.js?v=1.5.5';
+import {amateurSeason, proSeason, slgOf, currentSalaryRating, baseballERA, baseballWHIP, seasonGrade} from '../engine/season.js?v=1.5.5';
+import {championshipChance} from '../engine/championship.js?v=1.5.5';
+import {buyoutRemaining, contractAnnual, contractMarketProfile, controlledAnnual, crossOffers, daibaFarewell, extensionOffer, faFlow, fmtMoney, handleDemotion, levelMinAnnual, makeContract, makeOffers, offseasonTradeCheck, pickOfferUI, signTo, teamChampRate} from '../engine/contract.js?v=1.5.5';
+import {drawEvents, removeTrait, checkChampionTrait} from './events.js?v=1.5.5';
+import {loveEvent} from './love.js?v=1.5.5';
+import {runDraft, pathChoiceHS, pathChoiceU4, advance} from '../engine/draft.js?v=1.5.5';
+import {endGame} from '../ui/retire.js?v=1.5.5';
 /* ================= 年度流程 ================= */
 export function startYear(){ S.yearOutsideIncome=0; stepQ.length=0; stepQ.push(phasePre,phaseMid,phaseEnd); divider(`${S.year} 年 · ${S.age} 歲 · ${stageLabel()}`); tlPush(); nextStep(); }
 /* ---------- 季初 ---------- */
@@ -283,14 +283,45 @@ export function movement(){
     card('bad','球團評估','帳面數據遠低於聯盟水準，教練團失去耐心。');
     handleDemotion(o,path,idx); return;
   }
-  /* 升級(壓倒性表現可連跳兩級) */
+  /* 升級：能力門檻 ＋ 帳面成績（壓倒性表現可連跳兩級）
+     舊版只看 ovr 與能力值 d，等於「體檢過關就上一軍」，實際打得如何完全不影響。
+     現在是兩道關卡：能力達標之後還要看當季真實數據(seasonGrade)，打不出來就再練一年；
+     反過來，能力檢測差最多 3 點但成績壓倒性，球團會破格拔擢——真實棒球的「打出來的」升法。
+
+     判定順序刻意是「先看能力是否遠超門檻，再看樣本是否足夠，最後才看成績」：
+     ① 能力已達「再下一級」的門檻(overQual) → 無條件升級。這種球員留在原層級沒有任何
+        意義，不該被一次擲骰卡住（實例：能力 62 的外野手在 1A，連大聯盟門檻 56 都過了，
+        卻因為受傷只出賽 25 場而被留隊）。
+     ② 樣本不足(grade<0：傷缺季或打席/局數太少) → 無從論斷成績，回到看能力的舊行為。
+     ③ 樣本足夠 → 依成績評等決定機率。
+     ②③ 必須分開，否則「打擊率 .358 但只出賽 25 場」會被當成「成績普通」，
+     跳出的訊息還會反過來說他帳面成績不夠好。 */
   if(idx<path.length-1){ const nx=path[idx+1];
-    if(o>=LV[nx].min&&((S.lastD||0)>=0||chance(50))){
+    const grade=S.lastSt?seasonGrade(S.lastSt,S.lv):-1;
+    const abilityOK=o>=LV[nx].min;
+    const nx2=idx<path.length-2?path[idx+2]:null;
+    /* 遠超門檻＝已達再下一級的標準；沒有再下一級時以 min+5 代之(各層級間距約 4~5)。 */
+    const overQual=abilityOK&&(nx2?o>=LV[nx2].min:o>=LV[nx].min+5);
+    const forced=!abilityOK&&o>=LV[nx].min-3&&grade>=3;
+    let promote=false;
+    if(abilityOK){
+      if(overQual)promote=true;                    /* ① 能力遠超門檻 */
+      else if(grade<0)promote=chance(85);          /* ② 樣本不足:看能力 */
+      else promote=grade>=3?true:grade===2?chance(90):grade===1?chance(70):chance(25);
+    }
+    else if(forced)promote=chance(55);
+    if(!promote&&abilityOK){
+      if(grade<0)card('info','球團評估',`體能檢測已達 <b>${LV[nx].n}</b> 的標準，但本季<b class="hl">出賽場數不足</b>，球團看不到足夠的樣本——再打一個完整球季。`);
+      else if(grade<=1)card('info','球團評估',`體能檢測已達 <b>${LV[nx].n}</b> 的標準，但帳面成績還沒說服教練團——<b class="hl">再打一年給他們看</b>。`);
+    }
+    if(promote){
       let to=nx;
-      if(idx<path.length-2){ const nx2=path[idx+2];
-        if(o>=LV[nx2].min+2&&(S.lastD||0)>=4)to=nx2; }
+      /* 連跳兩級:成績壓倒性,或能力已明顯凌駕再下一級(受傷球季也給得到) */
+      if(nx2&&o>=LV[nx2].min+2&&(grade>=3||o>=LV[nx2].min+6))to=nx2;
       const oldAnnual=S.ct?(S.ct.annualSchedule&&S.ct.annualSchedule.length?S.ct.annualSchedule[0]:S.ct.annual):null;
-      S.lv=to; card('good','升級通知',`表現獲得肯定，${to!==nx?'<b class="hl">連跳兩級</b>':'晉升'} <b class="hl">${LV[to].n}</b>！`); board(2);
+      S.lv=to;
+      if(forced)card('good','破格拔擢','體能檢測的數字還差一點，但你的成績讓球團無法忽視——<b class="hl">直接把你拉上去</b>。');
+      card('good','升級通知',`表現獲得肯定，${to!==nx?'<b class="hl">連跳兩級</b>':'晉升'} <b class="hl">${LV[to].n}</b>！`); board(2);
       if(S.ct&&Number.isFinite(oldAnnual)&&levelMinAnnual(to)>oldAnnual){
         const raised=contractAnnual();
         card('info','升級薪資保障',`原合約固定年薪 <b>${fmtMoney(oldAnnual)}</b> 低於 ${LV[to].n}保障標準；自下季起調整為 <b class="hl">${fmtMoney(raised)}</b>，後續即使下放也不會再降回原薪。`);
