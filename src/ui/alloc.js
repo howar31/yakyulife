@@ -15,11 +15,7 @@ export function setAlloc(v){ ALLOC=v; }
 export function clearAlloc(){ ALLOC=null; }
 export function allocPlace(){
   if(!ALLOC)return;
-  /* Every phone layout takes the overlay, not just the big-text one. Inside the strip the
-     panel grows to ~620px, which leaves the log 49px on a 390x844 phone and nothing at all on
-     a 360x780 one, and this is the most repeated screen in the game: 季初特訓 and 季末能力點
-     land once each per season. The squeeze was never about the type size. */
-  const a=$('act'), full=isMobileLayout();
+  const a=$('act'), full=document.body.classList.contains('big-text')&&isMobileLayout();
   const s=$('act-side'); if(s)s.classList.toggle('alloc',!full);
   if(full){
     /* move the nodes out of #act before rewriting it, or the rewrite would destroy them */
